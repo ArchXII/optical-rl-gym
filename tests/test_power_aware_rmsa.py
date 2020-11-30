@@ -3,6 +3,7 @@ from optical_rl_gym.envs.power_aware_rmsa_env import shortest_path_first_fit, \
     shortest_available_path_first_fit_fixed_power, \
     least_loaded_path_first_fit, SimpleMatrixObservation, PowerAwareRMSA
 from optical_rl_gym.utils import evaluate_heuristic, random_policy
+from optical_rl_gym.gnpy_utils import propagation
 
 import pickle
 import logging
@@ -39,31 +40,34 @@ def sapfffs_electric_boogaloo(env: PowerAwareRMSA) -> int:
     :param env: The environment of the simulator
     :return: action of iteration (path, spectrum resources, power)
     """
-    power = 10   # Fixed power variable for validation method. Gets passed through simulator.
+    power = -105  # Fixed power variable for validation method. Gets passed through simulator.
     for idp, path in enumerate(env.k_shortest_paths[env.service.source, env.service.destination]):
+        # print(path.best_modulation['minimum_osnr'])
         num_slots = env.get_number_slots(path)
         for initial_slot in range(0, env.topology.graph['num_spectrum_resources'] - num_slots):
             if env.is_path_free(path, initial_slot, num_slots):
+                osnr = np.mean(propagation(power, env.gnpy_network, path.node_list, initial_slot, num_slots, env.eqpt_library))
+                print(osnr)
                 return [idp, initial_slot, power]
     return [env.topology.graph['k_paths'], env.topology.graph['num_spectrum_resources'], power]
 
 
 # Random Policy
-init_env = gym.make('PowerAwareRMSA-v0', **env_args)
-env_rnd = SimpleMatrixObservation(init_env)
-mean_reward_rnd, std_reward_rnd = evaluate_heuristic(env_rnd, random_policy, n_eval_episodes=episodes)
-print('Rnd:'.ljust(8), f'{mean_reward_rnd:.4f}  {std_reward_rnd:>7.4f}')
-print('Bit rate blocking:', (init_env.episode_bit_rate_requested - init_env.episode_bit_rate_provisioned) / init_env.episode_bit_rate_requested)
-print('Request blocking:', (init_env.episode_services_processed - init_env.episode_services_accepted) / init_env.episode_services_processed)
+# init_env = gym.make('PowerAwareRMSA-v0', **env_args)
+# env_rnd = SimpleMatrixObservation(init_env)
+# mean_reward_rnd, std_reward_rnd = evaluate_heuristic(env_rnd, random_policy, n_eval_episodes=episodes)
+# print('Rnd:'.ljust(8), f'{mean_reward_rnd:.4f}  {std_reward_rnd:>7.4f}')
+# print('Bit rate blocking:', (init_env.episode_bit_rate_requested - init_env.episode_bit_rate_provisioned) / init_env.episode_bit_rate_requested)
+# print('Request blocking:', (init_env.episode_services_processed - init_env.episode_services_accepted) / init_env.episode_services_processed)
 
 # Shortest Available Path First Fit Fixed Power
-init_env = gym.make('PowerAwareRMSA-v0', **env_args)
-env_rnd = SimpleMatrixObservation(init_env)
-mean_reward_sapfffp, std_reward_sapfffp = evaluate_heuristic(env_rnd, shortest_available_path_first_fit_fixed_power, n_eval_episodes=episodes)
-print('SAP-FF-FP:'.ljust(8), f'{mean_reward_sapfffp:.4f}  {std_reward_sapfffp:>7.4f}')
-print('Bit rate blocking:', (init_env.episode_bit_rate_requested - init_env.episode_bit_rate_provisioned) / init_env.episode_bit_rate_requested)
-print('Request blocking:', (init_env.episode_services_processed - init_env.episode_services_accepted) / init_env.episode_services_processed)
-print('Throughput:', init_env.topology.graph['throughput'])
+# init_env = gym.make('PowerAwareRMSA-v0', **env_args)
+# env_rnd = SimpleMatrixObservation(init_env)
+# mean_reward_sapfffp, std_reward_sapfffp = evaluate_heuristic(env_rnd, shortest_available_path_first_fit_fixed_power, n_eval_episodes=episodes)
+# print('SAP-FF-FP:'.ljust(8), f'{mean_reward_sapfffp:.4f}  {std_reward_sapfffp:>7.4f}')
+# print('Bit rate blocking:', (init_env.episode_bit_rate_requested - init_env.episode_bit_rate_provisioned) / init_env.episode_bit_rate_requested)
+# print('Request blocking:', (init_env.episode_services_processed - init_env.episode_services_accepted) / init_env.episode_services_processed)
+# print('Throughput:', init_env.topology.graph['throughput'])
 
 
 init_env = gym.make('PowerAwareRMSA-v0', **env_args)
