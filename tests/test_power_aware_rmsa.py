@@ -24,7 +24,7 @@ policies = []
 # topology_name = 'gbn'
 # topology_name = 'nobel-us'
 # topology_name = 'germany50'
-with open(f'../examples/topologies/germany50_eon_gnpy_5-paths.h5', 'rb') as f:
+with open(f'../examples/topologies/nsfnet_chen_eon_5-paths.h5', 'rb') as f:
     topology = pickle.load(f)
 
 env_args = dict(topology=topology, seed=10, allow_rejection=True, load=load, mean_service_holding_time=25,
@@ -40,15 +40,20 @@ def sapfffs_electric_boogaloo(env: PowerAwareRMSA) -> int:
     :param env: The environment of the simulator
     :return: action of iteration (path, spectrum resources, power)
     """
-    power = -105  # Fixed power variable for validation method. Gets passed through simulator.
+    power = -46  # Fixed power variable for validation method. Gets passed through simulator. Increased by one at the start.
     for idp, path in enumerate(env.k_shortest_paths[env.service.source, env.service.destination]):
         # print(path.best_modulation['minimum_osnr'])
         num_slots = env.get_number_slots(path)
         for initial_slot in range(0, env.topology.graph['num_spectrum_resources'] - num_slots):
             if env.is_path_free(path, initial_slot, num_slots):
-                osnr = np.mean(propagation(power, env.gnpy_network, path.node_list, initial_slot, num_slots, env.eqpt_library))
-                print(osnr)
-                return [idp, initial_slot, power]
+                while power < 20:
+                    power += 1
+                    osnr = np.mean(propagation(power, env.gnpy_network, path.node_list, initial_slot, num_slots, env.eqpt_library))
+                    if osnr >= path.best_modulation['minimum_osnr']:
+                        print(power)
+                        return [idp, initial_slot, power]
+                power = -45
+                return[idp, initial_slot, power]
     return [env.topology.graph['k_paths'], env.topology.graph['num_spectrum_resources'], power]
 
 
