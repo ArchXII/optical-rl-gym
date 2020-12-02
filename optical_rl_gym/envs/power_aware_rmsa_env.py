@@ -12,6 +12,34 @@ from optical_rl_gym.gnpy_utils import propagation, topology_to_json
 from gnpy.tools.json_io import load_equipment, network_from_json
 
 
+class OSNRCounter:
+    def __init__(self, osnr_list=None):
+        if osnr_list is None:
+            self.osnr_list = []
+        else:
+            self.osnr_list = osnr_list
+        self.min_osnr_list = []
+
+    def add_osnr(self, osnr, status):
+        if type(osnr) != np.float64:
+            raise TypeError(f'OSNR must be an int, currently a(n) {type(osnr)}')
+        if status not in ['success', 'failure']:
+            raise TypeError(f'Status must be success or failure, currently {status}')
+        self.osnr_list.append([osnr, status])
+
+    def clear_osnr_list(self):
+        self.osnr_list = []
+
+    def get_osnr_list(self):
+        return self.osnr_list
+
+    def add_min_osnr(self, osnr):
+        self.min_osnr_list.append(osnr)
+
+    def get_min_osnr_list(self):
+        return self.min_osnr_list
+
+
 class PowerAwareRMSA(OpticalNetworkEnv):
     metadata = {
         'metrics': ['service_blocking_rate', 'episode_service_blocking_rate',
@@ -48,6 +76,7 @@ class PowerAwareRMSA(OpticalNetworkEnv):
         self.episode_bit_rate_requested = 0
         self.episode_bit_rate_provisioned = 0
         self.total_power = 0
+        self.counter = OSNRCounter()
 
         self.bit_rate_lower_bound = bit_rate_lower_bound
         self.bit_rate_higher_bound = bit_rate_higher_bound
